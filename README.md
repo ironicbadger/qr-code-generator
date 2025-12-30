@@ -18,7 +18,7 @@ A minimal, distroless Docker container hosting a simple web UI for generating QR
 docker compose up -d
 
 # Or run directly
-docker run -d -p 8080:8080 -v qr-data:/data ghcr.io/OWNER/qr-code-generator:latest
+docker run -d -p 8080:8080 -v qr-data:/data ghcr.io/ironicbadger/qr-code-generator:latest
 ```
 
 Access the web UI at http://localhost:8080
