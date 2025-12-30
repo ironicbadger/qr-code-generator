@@ -1,0 +1,16 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - qr-data:/data
+    environment:
+      - PORT=8080
+      - DB_PATH=/data/qrcodes.db
+    restart: unless-stopped
+
+volumes:
+  qr-data:
