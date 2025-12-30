@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"os"
 
-	"qr-code-generator/internal/handler"
-	"qr-code-generator/internal/qrcode"
-	"qr-code-generator/internal/storage"
+	"github.com/ironicbadger/qr-code-generator/internal/handler"
+	"github.com/ironicbadger/qr-code-generator/internal/qrcode"
+	"github.com/ironicbadger/qr-code-generator/internal/storage"
 )
 
 //go:embed templates/*
@@ -25,7 +25,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
-	defer store.Close()
+	defer func() {
+		if err := store.Close(); err != nil {
+			log.Printf("Failed to close storage: %v", err)
+		}
+	}()
 
 	// Initialize QR generator
 	generator := qrcode.New()

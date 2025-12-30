@@ -95,7 +95,7 @@ func (s *Store) GetByID(id int64) (*QRCode, error) {
 	return qr, nil
 }
 
-func (s *Store) List(limit, offset int) ([]*QRCode, error) {
+func (s *Store) List(limit, offset int) (codes []*QRCode, err error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -107,9 +107,12 @@ func (s *Store) List(limit, offset int) ([]*QRCode, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to list qr codes: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close rows: %w", closeErr)
+		}
+	}()
 
-	var codes []*QRCode
 	for rows.Next() {
 		qr := &QRCode{}
 		if err := rows.Scan(&qr.ID, &qr.Content, &qr.Label, &qr.ImageData, &qr.CreatedAt, &qr.UpdatedAt); err != nil {
@@ -117,7 +120,10 @@ func (s *Store) List(limit, offset int) ([]*QRCode, error) {
 		}
 		codes = append(codes, qr)
 	}
-	return codes, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate qr codes: %w", err)
+	}
+	return codes, nil
 }
 
 func (s *Store) UpdateLabel(id int64, label string) error {

@@ -12,7 +12,11 @@ func TestStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	t.Cleanup(func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	})
 
 	dbPath := filepath.Join(tmpDir, "test.db")
 
@@ -21,7 +25,11 @@ func TestStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create store: %v", err)
 	}
-	defer store.Close()
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Errorf("Failed to close store: %v", err)
+		}
+	})
 
 	// Test Create
 	imageData := []byte("test-image-data")
@@ -62,8 +70,12 @@ func TestStore(t *testing.T) {
 
 	// Test List
 	// Add more QR codes
-	store.Create("content2", "", []byte("data2"))
-	store.Create("content3", "", []byte("data3"))
+	if _, err := store.Create("content2", "", []byte("data2")); err != nil {
+		t.Fatalf("Failed to create QR code: %v", err)
+	}
+	if _, err := store.Create("content3", "", []byte("data3")); err != nil {
+		t.Fatalf("Failed to create QR code: %v", err)
+	}
 
 	codes, err := store.List(10, 0)
 	if err != nil {
@@ -87,7 +99,10 @@ func TestStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to update label: %v", err)
 	}
-	updated, _ := store.GetByID(qr.ID)
+	updated, err := store.GetByID(qr.ID)
+	if err != nil {
+		t.Fatalf("Failed to get QR code: %v", err)
+	}
 	if updated.Label != "Updated Label" {
 		t.Errorf("Expected label 'Updated Label', got '%s'", updated.Label)
 	}
@@ -103,7 +118,10 @@ func TestStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to delete QR code: %v", err)
 	}
-	deleted, _ := store.GetByID(qr.ID)
+	deleted, err := store.GetByID(qr.ID)
+	if err != nil {
+		t.Fatalf("Failed to get QR code: %v", err)
+	}
 	if deleted != nil {
 		t.Error("Expected nil after delete")
 	}
@@ -120,7 +138,11 @@ func TestStoreCreateDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	t.Cleanup(func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
+	})
 
 	// Create store with nested path that doesn't exist
 	dbPath := filepath.Join(tmpDir, "nested", "dir", "test.db")
@@ -128,7 +150,11 @@ func TestStoreCreateDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create store with nested path: %v", err)
 	}
-	defer store.Close()
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Errorf("Failed to close store: %v", err)
+		}
+	})
 
 	// Verify the directory was created
 	if _, err := os.Stat(filepath.Dir(dbPath)); os.IsNotExist(err) {

@@ -1,0 +1,5 @@
+.git/
+.bin/
+.gocache/
+.gomodcache/
+.golangci-lint-cache/

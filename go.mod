@@ -1,4 +1,4 @@
-module qr-code-generator
+module github.com/ironicbadger/qr-code-generator
 
 go 1.22
 

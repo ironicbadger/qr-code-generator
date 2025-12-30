@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"qr-code-generator/internal/qrcode"
-	"qr-code-generator/internal/storage"
+	"github.com/ironicbadger/qr-code-generator/internal/qrcode"
+	"github.com/ironicbadger/qr-code-generator/internal/storage"
 )
 
 type Handler struct {
@@ -106,7 +106,9 @@ func (h *Handler) handleGetQR(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Content-Disposition", "inline; filename=\"qr-"+idStr+".png\"")
-	w.Write(qr.ImageData)
+	if _, err := w.Write(qr.ImageData); err != nil {
+		log.Printf("Error writing QR image: %v", err)
+	}
 }
 
 func (h *Handler) handleUpdateLabel(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +138,9 @@ func (h *Handler) handleUpdateLabel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
 }
 
 func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
@@ -158,10 +162,14 @@ func (h *Handler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
 }
 
 func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "healthy"}); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
 }

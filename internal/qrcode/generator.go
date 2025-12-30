@@ -7,9 +7,8 @@ import (
 )
 
 const (
-	DefaultSize    = 256
-	ThumbnailSize  = 64
-	RecoveryLevel  = qr.Medium
+	DefaultSize   = 256
+	RecoveryLevel = qr.Medium
 )
 
 type Generator struct {

@@ -9,11 +9,12 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
-	"qr-code-generator/internal/qrcode"
-	"qr-code-generator/internal/storage"
+	"github.com/ironicbadger/qr-code-generator/internal/qrcode"
+	"github.com/ironicbadger/qr-code-generator/internal/storage"
 )
 
 func setupTestHandler(t *testing.T) (*Handler, func()) {
@@ -25,7 +26,9 @@ func setupTestHandler(t *testing.T) (*Handler, func()) {
 	dbPath := filepath.Join(tmpDir, "test.db")
 	store, err := storage.New(dbPath)
 	if err != nil {
-		os.RemoveAll(tmpDir)
+		if removeErr := os.RemoveAll(tmpDir); removeErr != nil {
+			t.Fatalf("Failed to remove temp dir: %v", removeErr)
+		}
 		t.Fatalf("Failed to create store: %v", err)
 	}
 
@@ -44,8 +47,12 @@ func setupTestHandler(t *testing.T) (*Handler, func()) {
 	h := New(store, generator, tmpl)
 
 	cleanup := func() {
-		store.Close()
-		os.RemoveAll(tmpDir)
+		if err := store.Close(); err != nil {
+			t.Errorf("Failed to close store: %v", err)
+		}
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp dir: %v", err)
+		}
 	}
 
 	return h, cleanup
@@ -137,13 +144,16 @@ func TestHandleGetQR(t *testing.T) {
 	defer cleanup()
 
 	// Create a QR code first
-	qr, _ := h.store.Create("test", "", []byte{0x89, 0x50, 0x4E, 0x47})
+	qr, err := h.store.Create("test", "", []byte{0x89, 0x50, 0x4E, 0x47})
+	if err != nil {
+		t.Fatalf("Failed to create QR code: %v", err)
+	}
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
-	req := httptest.NewRequest(http.MethodGet, "/qr/"+string(rune(qr.ID+'0')), nil)
-	req.SetPathValue("id", "1")
+	req := httptest.NewRequest(http.MethodGet, "/qr/"+strconv.FormatInt(qr.ID, 10), nil)
+	req.SetPathValue("id", strconv.FormatInt(qr.ID, 10))
 	w := httptest.NewRecorder()
 
 	h.handleGetQR(w, req)
@@ -177,7 +187,10 @@ func TestHandleUpdateLabel(t *testing.T) {
 	defer cleanup()
 
 	// Create a QR code first
-	qr, _ := h.store.Create("test", "", []byte{0x89, 0x50, 0x4E, 0x47})
+	qr, err := h.store.Create("test", "", []byte{0x89, 0x50, 0x4E, 0x47})
+	if err != nil {
+		t.Fatalf("Failed to create QR code: %v", err)
+	}
 
 	body := bytes.NewBufferString(`{"label":"Updated"}`)
 	req := httptest.NewRequest(http.MethodPut, "/qr/1", body)
@@ -192,7 +205,10 @@ func TestHandleUpdateLabel(t *testing.T) {
 	}
 
 	// Verify update
-	updated, _ := h.store.GetByID(qr.ID)
+	updated, err := h.store.GetByID(qr.ID)
+	if err != nil {
+		t.Fatalf("Failed to get QR code: %v", err)
+	}
 	if updated.Label != "Updated" {
 		t.Errorf("Expected label 'Updated', got '%s'", updated.Label)
 	}
@@ -203,7 +219,10 @@ func TestHandleDelete(t *testing.T) {
 	defer cleanup()
 
 	// Create a QR code first
-	qr, _ := h.store.Create("test", "", []byte{0x89, 0x50, 0x4E, 0x47})
+	qr, err := h.store.Create("test", "", []byte{0x89, 0x50, 0x4E, 0x47})
+	if err != nil {
+		t.Fatalf("Failed to create QR code: %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodDelete, "/qr/1", nil)
 	req.SetPathValue("id", "1")
@@ -216,7 +235,10 @@ func TestHandleDelete(t *testing.T) {
 	}
 
 	// Verify deletion
-	deleted, _ := h.store.GetByID(qr.ID)
+	deleted, err := h.store.GetByID(qr.ID)
+	if err != nil {
+		t.Fatalf("Failed to get QR code: %v", err)
+	}
 	if deleted != nil {
 		t.Error("Expected QR code to be deleted")
 	}

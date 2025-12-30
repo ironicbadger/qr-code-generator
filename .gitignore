@@ -29,3 +29,9 @@ Thumbs.db
 # Local data
 *.db
 data/
+
+# Local tooling caches
+.bin/
+.gocache/
+.gomodcache/
+.golangci-lint-cache/
