@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #111;
+        }
+        h2 {
+            font-size: 1.1rem;
+            margin: 2rem 0 1rem;
+            color: #555;
+        }
+        .generate-form {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        .generate-form input[type="text"] {
+            flex: 1;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            outline: none;
+        }
+        .generate-form input[type="text"]:focus {
+            border-color: #007bff;
+        }
+        .generate-form button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .generate-form button:hover {
+            background: #0056b3;
+        }
+        .history-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .history-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .history-table th,
+        .history-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .history-table th {
+            background: #fafafa;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        .history-table tr:last-child td {
+            border-bottom: none;
+        }
+        .history-table tr:hover {
+            background: #f9f9f9;
+        }
+        .qr-thumb {
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .qr-thumb:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .content-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+        .label-cell {
+            min-width: 150px;
+        }
+        .label-input {
+            width: 100%;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.9rem;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            background: transparent;
+        }
+        .label-input:hover {
+            border-color: #ddd;
+        }
+        .label-input:focus {
+            outline: none;
+            border-color: #007bff;
+            background: white;
+        }
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-icon {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.85rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: transparent;
+            color: #666;
+        }
+        .btn-icon:hover {
+            background: #eee;
+        }
+        .btn-delete:hover {
+            background: #fee;
+            color: #c00;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #888;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .modal-content img {
+            max-width: 300px;
+        }
+        .modal-content a {
+            display: block;
+            margin-top: 1rem;
+            color: #007bff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>QR Code Generator</h1>
+
+    <form class="generate-form" action="/generate" method="POST">
+        <input type="text" name="content" placeholder="Enter text or URL..." required autofocus>
+        <button type="submit">Generate</button>
+    </form>
+
+    <h2>History</h2>
+    <div class="history-table">
+        {{if .QRCodes}}
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 60px;">QR</th>
+                    <th>Content</th>
+                    <th>Label</th>
+                    <th style="width: 80px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .QRCodes}}
+                <tr data-id="{{.ID}}">
+                    <td>
+                        <img src="/qr/{{.ID}}" alt="QR Code" class="qr-thumb" onclick="showQR({{.ID}})">
+                    </td>
+                    <td class="content-cell" title="{{.Content}}">{{.Content}}</td>
+                    <td class="label-cell">
+                        <input type="text" class="label-input" value="{{.Label}}"
+                               placeholder="Add label..."
+                               onchange="updateLabel({{.ID}}, this.value)">
+                    </td>
+                    <td class="actions">
+                        <button class="btn-icon btn-delete" onclick="deleteQR({{.ID}})" title="Delete">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+        {{else}}
+        <div class="empty-state">
+            No QR codes yet. Generate your first one above!
+        </div>
+        {{end}}
+    </div>
+
+    <div class="modal" id="qrModal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <img id="modalImage" src="" alt="QR Code">
+            <a id="modalDownload" href="" download="qr-code.png">Download PNG</a>
+        </div>
+    </div>
+
+    <script>
+        function showQR(id) {
+            const modal = document.getElementById('qrModal');
+            const img = document.getElementById('modalImage');
+            const download = document.getElementById('modalDownload');
+            img.src = '/qr/' + id;
+            download.href = '/qr/' + id;
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('qrModal').classList.remove('active');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        async function updateLabel(id, label) {
+            try {
+                const response = await fetch('/qr/' + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ label: label })
+                });
+                if (!response.ok) throw new Error('Failed to update');
+            } catch (err) {
+                alert('Failed to update label');
+            }
+        }
+
+        async function deleteQR(id) {
+            if (!confirm('Delete this QR code?')) return;
+            try {
+                const response = await fetch('/qr/' + id, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Failed to delete');
+                document.querySelector(`tr[data-id="${id}"]`).remove();
+
+                // Check if table is empty
+                const tbody = document.querySelector('tbody');
+                if (tbody && tbody.children.length === 0) {
+                    location.reload();
+                }
+            } catch (err) {
+                alert('Failed to delete QR code');
+            }
+        }
+    </script>
+</body>
+</html>
