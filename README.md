@@ -13,6 +13,20 @@ A minimal, distroless Docker container hosting a simple web UI for generating QR
 
 ## Quick Start
 
+```yaml
+# compose.yaml
+services:
+  qr-code-generator:
+    image: ghcr.io/ironicbadger/qr-code-generator:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - qr-data:/data
+
+volumes:
+  qr-data:
+```
+
 ```bash
 # Using Docker Compose
 docker compose up -d
